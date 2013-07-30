@@ -1,0 +1,198 @@
+diff -uprN a/src/applications//helper/test-app-helper.cc b/src/applications//helper/test-app-helper.cc
+--- a/src/applications//helper/test-app-helper.cc	1970-01-01 01:00:00.000000000 +0100
++++ b/src/applications//helper/test-app-helper.cc	2013-07-29 12:13:55.557541239 +0200
+@@ -0,0 +1,50 @@
++/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
++/*
++ * Copyright (c) Jul 29, 2013
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation;
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++ *
++ * Author: Rubén Martínez <rmartinez@deic.uab.cat> 
++ */
++
++#include "test-app-helper.h"
++
++namespace ns3 {
++
++TestApplicationHelper::TestApplicationHelper()
++{
++  m_factory.SetTypeId ("ns3::TestApplication");
++}
++
++TestApplicationHelper::~TestApplicationHelper()
++{
++
++}
++
++ApplicationContainer
++TestApplicationHelper::Install (Ptr<Node> node) const
++{
++  return ApplicationContainer (InstallPriv (node));
++}
++
++Ptr<Application>
++TestApplicationHelper::InstallPriv (Ptr<Node> node) const
++{
++  Ptr<Application> app = m_factory.Create<Application> ();
++  node->AddApplication (app);
++
++  return app;
++}
++
++} // namespace ns3
+diff -uprN a/src/applications//helper/test-app-helper.h b/src/applications//helper/test-app-helper.h
+--- a/src/applications//helper/test-app-helper.h	1970-01-01 01:00:00.000000000 +0100
++++ b/src/applications//helper/test-app-helper.h	2013-07-29 12:16:08.623446606 +0200
+@@ -0,0 +1,47 @@
++/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
++/*
++ * Copyright (c) Jul 29, 2013
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation;
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++ *
++ * Author: Rubén Martínez <rmartinez@deic.uab.cat> 
++ */
++
++#ifndef TEST_APP_HELPER_H
++#define TEST_APP_HELPER_H
++
++#include "ns3/object-factory.h"
++#include "ns3/node-container.h"
++#include "ns3/application-container.h"
++#include "ns3/testapp.h"
++
++namespace ns3 {
++
++class TestApplicationHelper
++{
++public:
++	TestApplicationHelper();
++	~TestApplicationHelper();
++
++	ApplicationContainer Install (Ptr<Node> node) const;
++
++private:
++	Ptr<Application> InstallPriv (Ptr<Node> node) const;
++	ObjectFactory m_factory;
++};
++
++} // namespace ns3
++
++
++#endif /* TEST_APP_HELPER_H */
+diff -uprN a/src/applications//model/testapp.cc b/src/applications//model/testapp.cc
+--- a/src/applications//model/testapp.cc	2013-07-30 11:04:00.996399456 +0200
++++ b/src/applications//model/testapp.cc	2013-07-29 18:15:31.227844521 +0200
+@@ -26,10 +26,14 @@ TestApplication::~TestApplication ()
+   NS_LOG_FUNCTION (this);
+ }
+ 
+-/*
+- *
+- * XXX: IMPLEMENT TWO METHODS HERE
+- * 
+- * */
++void
++TestApplication::StartApplication() {
++  NS_LOG_INFO("Hello World!");
++}
++
++void
++TestApplication::StopApplication() {
++  NS_LOG_INFO("Goodbye World!");
++}
+ 
+ } // namespace ns3
+diff -uprN a/src/applications//model/testapp.h b/src/applications//model/testapp.h
+--- a/src/applications//model/testapp.h	2013-07-30 11:04:01.004399090 +0200
++++ b/src/applications//model/testapp.h	2013-07-29 10:54:37.463469627 +0200
+@@ -14,12 +14,10 @@ public:
+   TestApplication ();
+   virtual ~TestApplication ();
+ 
+-private:
+-/*
+- * XXX: ADD TWO METHODS HERE
+- *
+- * 
+- */
++private:  
++  virtual void StartApplication (void);    
++  virtual void StopApplication (void);     
++  
+ };
+ 
+ }
+diff -uprN a/src/applications//wscript b/src/applications//wscript
+--- a/src/applications//wscript	2013-07-30 11:04:01.024398173 +0200
++++ b/src/applications//wscript	2013-07-29 12:09:42.209145003 +0200
+@@ -26,6 +26,7 @@ def build(bld):
+         'helper/udp-client-server-helper.cc',
+         'helper/udp-echo-helper.cc',
+         'helper/v4ping-helper.cc',
++        'helper/test-app-helper.cc',        
+         ]
+ 
+     applications_test = bld.create_ns3_module_test_library('applications')
+@@ -59,6 +60,7 @@ def build(bld):
+         'helper/udp-client-server-helper.h',
+         'helper/udp-echo-helper.h',
+         'helper/v4ping-helper.h',
++        'helper/test-app-helper.h',
+         ]
+ 
+     bld.ns3_python_bindings()
+diff -uprN a/scratch/testapp-sim.cc b/scratch/testapp-sim.cc
+--- a/scratch/testapp-sim.cc	2013-07-30 11:04:00.980400188 +0200
++++ b/scratch/testapp-sim.cc	2013-07-29 12:17:52.466690417 +0200
+@@ -9,17 +9,18 @@ NS_LOG_COMPONENT_DEFINE ("TestExample");
+ int
+ main (int argc, char *argv[])
+ {
++  
++  LogComponentEnable ("TestApplication", LOG_LEVEL_INFO);
++  
+   NodeContainer nodes;
+   nodes.Create (1);
+-
+-  /*
+-   * XXX:
+-   * Add TestApplication to the above created
+-   * node. Then schedule TestApplication to be
+-   * started and stopped at the 1st and 2nd
+-   * second of simulation time respectively.
+-   * 
+-   * */
++  
++  TestApplicationHelper testapp;      
++ 
++  ApplicationContainer apps = testapp.Install(nodes.Get(0));
++  
++  apps.Start(Seconds(1.0));
++  apps.Stop(Seconds(2.0));
+ 
+   Simulator::Run ();
+   Simulator::Destroy ();
